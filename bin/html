@@ -1,0 +1,63 @@
+#!/bin/sh
+#
+# Prerequisites:
+# - OUT has prefix dst/
+# - IN has prefix src/ and src/ exists
+
+IN=$1
+OUT=$2
+LANGS=$3
+DEFAULT_LANG=$4
+
+set -o allexport
+
+mkdir -p $(dirname $OUT) tmp
+TARGET_LANG=$(printf "$OUT" | cut -d '/' -f 2 -)
+[ -f conf/general ] && . conf/general
+
+if echo "${LANGS}" | grep -q "${TARGET_LANG}"; then
+	[ -f conf/i18n/${TARGET_LANG} ] && . conf/i18n/${TARGET_LANG}
+else
+	[ -f conf/i18n/${DEFAULT_LANG} ] && . conf/i18n/${DEFAULT_LANG}
+	TARGET_LANG=${DEFAULT_LANG}
+fi
+
+LANG_PREFIX=$(printf $TARGET_LANG | grep -v ${DEFAULT_LANG} | sed 's/.*/\/&/g')
+if [ -f templates/alt_lang_item.html ]; then
+    PREFIX="dst$(printf "\\/${TARGET_LANG}" | sed "/\/${DEFAULT_LANG}/d")"
+    for L in $(echo "$LANGS" | sed "s/${TARGET_LANG}//"); do
+        NEW_PREFIX=$(printf "\\/$L" | sed "/\/${DEFAULT_LANG}/d")
+        ALT_LANG="$(sed -n '/^lang=/s/\(lang=\)\?"//gp' conf/i18n/$L)" \
+        ALT_LANG_HREF="$(printf $OUT | sed "s/${PREFIX}/${NEW_PREFIX}/; s/index\.html$//")" \
+    	envsubst < templates/alt_lang_item.html >> tmp/alt_lang_index
+    done
+    
+    if [ -f tmp/alt_lang_index ]; then
+        ALT_LANG_ITEMS=$(cat tmp/alt_lang_index)
+        rm tmp/alt_lang_index
+    fi
+fi
+
+heading=$(sed -n "/^[^=]/G;/\n=\(${TARGET_LANG%_def}\|\)$/{s/<\(\/\|\)h1>//g;P;q};/^=/h" $IN)
+subtitle="- ${heading}"
+
+if echo $IN | grep -q "/index\.html$" && grep -v -q "^=page$" $IN && [ -f templates/index_item.html ] && [ -f templates/index.html ]; then
+    ENTRY_DIR=$(dirname $IN)
+    ENTRIES=${ENTRY_DIR}/$(ls -p $ENTRY_DIR | grep '.*\.html$' | sed "/^index\.html$/d;")
+	for ENTRY in ${ENTRIES}; do
+		PREHREF="${LANG_PREFIX}${ENTRY#src}" \
+		HREF="${PREHREF%.html}/" \
+		TITLE=$(sed -n "/^[^=]/G;/\n=\(${TARGET_LANG%_def}\|\)$/{s/<\(\/\|\)h1>//g;P;q};/^=/h" ${ENTRY}) \
+		envsubst < templates/index_item.html >> tmp/index_items
+	done
+	CONTENT=$(ITEMS=$(cat tmp/index_items) envsubst < templates/index.html)
+else
+	CONTENT=$(sed -n "/^[^=]/G;/\n=\(${TARGET_LANG%_def}\|\)$/P;/^=/h" $IN | envsubst)
+fi
+
+if [ -f templates/site.html ]; then
+    envsubst < templates/site.html > $OUT
+else
+    printf "${CONTENT}" > $OUT
+fi
+rm -r tmp
