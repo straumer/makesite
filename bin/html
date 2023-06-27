@@ -58,6 +58,6 @@ fi
 if [ -f templates/site.html ]; then
     envsubst < templates/site.html > $OUT
 else
-    printf "${CONTENT}" > $OUT
+    echo "${CONTENT}" > $OUT
 fi
 rm -r tmp
