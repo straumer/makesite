@@ -2,7 +2,7 @@
 
 BASE_PAGES != [ -d src ] && find src -type f -name "*.html" | sed '/index\.html$$/d; s/\.html$$//g; s/^src/dst/g; s/.*/&\/index.html/g'
 BASE_INDEX != [ -d src ] && find src -type f -name "index.html" | sed 's/^src/dst/g'
-STATIC_FILES != [ -d src ] && ls -p src | sed '/\(\.html\|\/\)$$/d; s/.*/dst\/&/g'
+STATIC_FILES != [ -d src ] && find src -type f | sed '/\(\.html\)$$/d; s/^src/dst/'
 LANGS != [ -d conf/i18n ] && ls conf/i18n
 EXPLICIT_DEFAULT_LANG !=  printf '$(LANGS)' | sed -n '/_def$$/{p;q}'
 DEFAULT_LANG != printf '$(LANGS)' | wc -w | sed 's/0/en/;s/1/$(LANGS)/;/^[^01]$$/s/.*/$(or $(EXPLICIT_DEFAULT_LANG),en)/'
