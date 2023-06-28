@@ -33,7 +33,8 @@ if [ -f templates/alt_lang_item.html ]; then
     done
     
     if [ -f tmp/alt_lang_index ]; then
-        ALT_LANG_ITEMS=$(cat tmp/alt_lang_index)
+        ali_indentation=$(sed -n '/^.*\$\({\|\)ALT_LANG_ITEMS\(}\|\)/s/\$\({\|\)ALT_LANG_ITEMS\(}\|\).*//p' templates/site.html)
+        ALT_LANG_ITEMS=$(cat tmp/alt_lang_index | sed "2,\$s/^/${ali_indentation}/")
         rm tmp/alt_lang_index
     fi
 fi
@@ -56,6 +57,8 @@ else
 fi
 
 if [ -f templates/site.html ]; then
+    content_indentation=$(sed -n '/^.*\$\({\|\)CONTENT\(}\|\)/s/\$\({\|\)CONTENT\(}\|\).*//p' templates/site.html)
+    CONTENT=$(echo "${CONTENT}" | sed "2,\$s/^/${content_indentation}/")
     envsubst < templates/site.html > $OUT
 else
     echo "${CONTENT}" > $OUT
