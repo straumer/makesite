@@ -1,18 +1,22 @@
 # Makesite
 
-This is a static site generator made up of a makefile and shell script(s). Features include:
+This is a static site generator made up of a makefile and shell script(s). It
 
-- Works on GNU/Linux systems out of the box, using standard tools. Although it's not fully POSIX-compliant, the goal is to make it as compliant as possible.
+- Tries to be as POSIX-compliant as possible (suggestions for improvements are welcome).
+- Works on most GNU/Linux systems out of the box, using standard tools. 
+- Works on BSD systems if GNU `make` and `envsubst` utilities are installed.
 - Multilingual.
 - Templates based on `envsubst`.
-- Simple and hackable, made with advanced users in mind.
 - Plain HTML.
+- Simple and hackable, made with advanced users in mind.
 
-# A few things to avoid
+
+## A few things to avoid
 
 - Making directories under `src` with same name as `conf/i18n/*`.
 
-# Basic usage
+
+## Basic usage
 
 After cloning the repo, inside root you can run `make`. Nothing will be built.
 
