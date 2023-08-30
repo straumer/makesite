@@ -36,4 +36,4 @@ deploy: all
 	rsync --ignore-existing --delete-excluded -rvz $${rsync_from}/* $${rsync_to}
 
 clean:
-	@rm -r dst
+	@rm -r dst/*
