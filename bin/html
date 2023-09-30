@@ -40,7 +40,11 @@ if [ -f templates/alt_lang_item.html ]; then
 fi
 
 heading=$(sed -n "/^[^=]/G;/\n=\(${TARGET_LANG%_def}\|\)$/{s/<\(\/\|\)h1>//g;P;q};/^=/h" $IN)
-subtitle="- ${heading}"
+if [ -z "${heading}" ]; then
+    subtitle=""
+else
+    subtitle="- ${heading}"
+fi
 
 if echo $IN | grep -q "/index\.html$" && grep -v -q "^=page$" $IN && [ -f templates/index_item.html ] && [ -f templates/index.html ]; then
     ENTRY_DIR=$(dirname $IN)
