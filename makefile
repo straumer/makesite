@@ -20,6 +20,8 @@ all: $(PAGES) $(INDEX) $(STATIC_FILES)
 
 .SECONDEXPANSION:
 
+-include conf.mk
+
 $(PAGES): dst%/index.html: src$$(call rmlangprefix,%).html $(CONFIGS) $(TEMPLATES)
 
 $(INDEX): dst%index.html: src$$(call rmlangprefix,%)index.html $(CONFIGS) $(TEMPLATES)
