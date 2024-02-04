@@ -2,11 +2,10 @@
 
 This is a static site generator made up of a makefile and shell script(s). It
 
-- Tries to be as POSIX-compliant as possible (suggestions for improvements are welcome).
+- Tries to be as POSIX-compliant as possible.
 - Works on most GNU/Linux systems out of the box, using standard tools. 
-- Works on BSD systems if GNU `make` and `envsubst` utilities are installed.
+- Works on BSD systems if GNU `make` utility is installed.
 - Multilingual.
-- Templates based on `envsubst`.
 - Plain HTML.
 - Simple and hackable, made with advanced users in mind.
 
@@ -42,7 +41,7 @@ Now let's make a common navbar for these pages. We use a template for this. See 
 ```
 <html>
   <head>
-    <title>${title}${subtitle}</title>
+    <title>MS_TITLE MS_SUBTITLE</title>
   </head>
   <body>
     <nav>
@@ -50,16 +49,16 @@ Now let's make a common navbar for these pages. We use a template for this. See 
         <a href="/about/">About</a>
     </nav>
     <article>
-      ${CONTENT}
+      MS_CONTENT
     </article>
   </body>
 </html>
 ```
 
-Okay! Now we can navigate between the two pages. The page title looks a bit off though. The `subtitle` env variable above is generated from the first `h1` element found in each file for the `=en` language. We haven't made the overall `title` of the site, so let's make it:
+Okay! Now we can navigate between the two pages. The page title looks a bit off though. The `MS_SUBTITLE` variable (variables start with MS_) above is generated from the first `h1` element found in each file for the `=en` language. We haven't made the overall `MS_TITLE` of the site, so let's make it by creating an m4 macro for it:
 ```
 mkdir conf
-echo 'title="Awesome Site"' > conf/general
+echo "define(`MS_TITLE',`My site')dnl" > conf/general
 make
 ```
 
@@ -68,8 +67,8 @@ That's a better title. You can add any variables in `conf/general` and use them 
 What if we want to add a new language, say German. For that, make the languages:
 ```
 mkdir conf/i18n
-printf 'lang="English"' > conf/i18n/en
-printf 'lang="Deutch"' > conf/i18n/de
+printf 'define(`i18n_lang',`English')dnl' > conf/i18n/en
+printf 'define(`i18n_lang',`Deutch')dnl' > conf/i18n/de
 make
 ```
 
@@ -94,16 +93,16 @@ We see it made copies of the existing src pages in `dst/de`. Those pages just ha
 
 To switch between languages more easily, let's also add a language switcher into the navbar. First create the language template:
 ```
-printf '<a href="${ALT_LANG_HREF}">${ALT_LANG}</a>' > templates/alt_lang_item.html
+printf '<a href="MS_ALT_LANG_HREF">MS_ALT_LANG</a>' > templates/alt_lang_item.html
 ```
 
 Then add to `templates/site.html`:
 ```
 ...
     <nav>
-      <a href="${LANG_PREFIX}/">Home</a>
-      <a href="${LANG_PREFIX}/about/">About</a>
-      ${ALT_LANG_ITEMS}
+      <a href="MS_LANG_PREFIX/">Home</a>
+      <a href="MS_LANG_PREFIX/about/">About</a>
+      MS_ALT_LANG_ITEMS
     </nav>`
 ...
 ```

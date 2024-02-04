@@ -11,30 +11,33 @@ DEFAULT_LANG=$4
 
 set -o allexport
 
+MACROS=""
 mkdir -p $(dirname $OUT) tmp
 TARGET_LANG=$(printf "$OUT" | cut -d '/' -f 2 -)
-[ -f conf/general ] && . conf/general
+[ -f conf/general ] && MACROS="$(cat conf/general)\n"
 
 if echo "${LANGS}" | grep -q "${TARGET_LANG}"; then
-	[ -f conf/i18n/${TARGET_LANG} ] && . conf/i18n/${TARGET_LANG}
+    [ -f conf/i18n/${TARGET_LANG} ] && MACROS="${MACROS}$(cat conf/i18n/${TARGET_LANG})\n"
 else
-	[ -f conf/i18n/${DEFAULT_LANG} ] && . conf/i18n/${DEFAULT_LANG}
+    [ -f conf/i18n/${DEFAULT_LANG} ] && MACROS="${MACROS}$(cat conf/i18n/${DEFAULT_LANG})\n"
 	TARGET_LANG=${DEFAULT_LANG}
 fi
 
 LANG_PREFIX=$(printf $TARGET_LANG | grep -v ${DEFAULT_LANG} | sed 's/.*/\/&/g')
+MACROS="${MACROS}define(\`MS_LANG_PREFIX',\`${LANG_PREFIX}')dnl\n"
 if [ -f templates/alt_lang_item.html ]; then
     PREFIX="dst$(printf "\\/${TARGET_LANG}" | sed "/\/${DEFAULT_LANG}/d")"
     for L in $(echo "$LANGS" | sed "s/${TARGET_LANG}//"); do
         NEW_PREFIX=$(printf "\\/$L" | sed "/\/${DEFAULT_LANG}/d")
-        ALT_LANG="$(sed -n '/^lang=/s/\(lang=\)\?"//gp' conf/i18n/$L)" \
-        ALT_LANG_HREF="$(printf $OUT | sed "s/${PREFIX}/${NEW_PREFIX}/; s/index\.html$//")" \
-    	envsubst < templates/alt_lang_item.html >> tmp/alt_lang_index
+        MACROS="${MACROS}define(\`MS_ALT_LANG',\`$(sed -n "/i18n_lang/{s/^.*,\`//;s/'.*$//p}" conf/i18n/$L)')dnl\n"
+        MACROS="${MACROS}define(\`MS_ALT_LANG_HREF',\`$(printf $OUT | sed "s/${PREFIX}/${NEW_PREFIX}/; s/index\.html$//")')dnl\n"
+    	printf "$MACROS" | m4 - templates/alt_lang_item.html >> tmp/alt_lang_index
     done
     
     if [ -f tmp/alt_lang_index ]; then
-        ali_indentation=$(sed -n '/^\s*\$\({\|\)ALT_LANG_ITEMS\(}\|\)/s/\$\({\|\)ALT_LANG_ITEMS\(}\|\).*//p' templates/site.html)
+        ali_indentation=$(sed -n '/^\s*MS_ALT_LANG_ITEMS/s/MS_ALT_LANG_ITEMS.*//p' templates/site.html)
         ALT_LANG_ITEMS=$(cat tmp/alt_lang_index | sed "2,\$s/^/${ali_indentation}/")
+        MACROS="${MACROS}define(\`MS_ALT_LANG_ITEMS',\`${ALT_LANG_ITEMS}')dnl\n"
         rm tmp/alt_lang_index
     fi
 fi
@@ -45,25 +48,32 @@ if [ -z "${heading}" ]; then
 else
     subtitle="- ${heading}"
 fi
+MACROS="${MACROS}define(\`MS_SUBTITLE',\`${subtitle}')dnl\n"
 
 if echo $IN | grep -q "/index\.html$" && grep -v -q "^=page$" $IN && [ -f templates/index_item.html ] && [ -f templates/index.html ]; then
     ENTRY_DIR=$(dirname $IN)
     ENTRIES=${ENTRY_DIR}/$(ls -p $ENTRY_DIR | grep '.*\.html$' | sed "/^index\.html$/d;")
+    ITEMS=""
 	for ENTRY in ${ENTRIES}; do
-		PREHREF="${LANG_PREFIX}${ENTRY#src}" \
-		HREF="${PREHREF%.html}/" \
-		TITLE=$(sed -n "/^[^=]/G;/\n=\(${TARGET_LANG%_def}\|\)$/{s/<\(\/\|\)h1>//g;P;q};/^=/h" ${ENTRY}) \
-		envsubst < templates/index_item.html >> tmp/index_items
+		PREHREF="${LANG_PREFIX}${ENTRY#src}"
+        TITLE=$(sed -n "/^[^=]/G;/\n=\(${TARGET_LANG%_def}\|\)$/{s/<\(\/\|\)h1>//g;P;q};/^=/h" ${ENTRY})
+        MACROS="${MACROS}define(\`MS_INDEX_HREF',\`${PREHREF%.html}/')dnl\n"
+        MACROS="${MACROS}define(\`MS_INDEX_TITLE',\`${TITLE}')dnl\n"
+        NEW_ITEM="$(printf "$MACROS" | m4 - templates/index_item.html)"
+        ITEMS="${ITEMS}${NEW_ITEM}\n"
 	done
-	CONTENT=$(ITEMS=$(cat tmp/index_items) envsubst < templates/index.html)
+    MACROS="${MACROS}define(\`MS_ITEMS',\`${ITEMS%\n}')dnl\n"
+    MACROS="${MACROS}define(\`MS_HEADING',\`${heading}')dnl\n"
+	CONTENT=$(printf "$MACROS" | m4 - templates/index.html)
 else
-	CONTENT=$(sed -n "/^[^=]/G;/\n=\(${TARGET_LANG%_def}\|\)$/P;/^=/h" $IN | envsubst)
+	CONTENT=$(sed -n "/^[^=]/G;/\n=\(${TARGET_LANG%_def}\|\)$/P;/^=/h" $IN | m4)
 fi
 
 if [ -f templates/site.html ]; then
-    content_indentation=$(sed -n '/^.*\$\({\|\)CONTENT\(}\|\)/s/\$\({\|\)CONTENT\(}\|\).*//p' templates/site.html)
+    content_indentation=$(sed -n '/^.*MS_CONTENT/s/MS_CONTENT.*//p' templates/site.html)
     CONTENT=$(echo "${CONTENT}" | sed "2,\$s/^/${content_indentation}/")
-    envsubst < templates/site.html > $OUT
+    MACROS="${MACROS}define(\`MS_CONTENT',\`${CONTENT}')dnl\n"
+    printf "$MACROS" | m4 - templates/site.html > $OUT
 else
     echo "${CONTENT}" > $OUT
 fi
