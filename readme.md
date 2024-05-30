@@ -108,3 +108,7 @@ Then add to `templates/site.html`:
 ```
 
 That's it! For the rest, read the code.
+
+## Bugs
+
+- Disappearing "'" in make output.

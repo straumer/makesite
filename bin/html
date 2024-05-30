@@ -50,9 +50,9 @@ else
 fi
 MACROS="${MACROS}define(\`MS_SUBTITLE',\`${subtitle}')dnl"$'\n'
 
-if echo $IN | grep -q "/index\.html$" && grep -v -q "^=page$" $IN && [ -f templates/index_item.html ] && [ -f templates/index.html ]; then
+if echo $IN | grep -q "/index\.html$" && head -n 1 $IN | grep -v -q "^=page$" && [ -f templates/index_item.html ] && [ -f templates/index.html ]; then
     ENTRY_DIR=$(dirname $IN)
-    ENTRIES=${ENTRY_DIR}/$(ls -p $ENTRY_DIR | grep '.*\.html$' | sed "/^index\.html$/d;")
+    ENTRIES=$(find $ENTRY_DIR -type f | grep "^${ENTRY_DIR}/[^/]*\\.html\$" | sed "/index\\.html$/d")
     ITEMS=""
 	for ENTRY in ${ENTRIES}; do
 		PREHREF="${LANG_PREFIX}${ENTRY#src}"
