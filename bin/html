@@ -72,7 +72,8 @@ fi
 if [ -f templates/site.html ]; then
     content_indentation=$(sed -n '/^.*MS_CONTENT/s/MS_CONTENT.*//p' templates/site.html)
     CONTENT=$(echo "${CONTENT}" | sed "2,\$s/^/${content_indentation}/")
-    MACROS="${MACROS}define(\`MS_CONTENT',\`${CONTENT}')dnl"
+    MACROS="${MACROS}changequote(\`[q[',\`]q]')dnl"$'\n'
+    MACROS="${MACROS}define([q[MS_CONTENT]q],[q[${CONTENT}]q])dnl"
     echo "${MACROS}" | m4 - templates/site.html > $OUT
 else
     echo "${CONTENT}" > $OUT
