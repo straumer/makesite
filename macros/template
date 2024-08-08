@@ -1,0 +1,1 @@
+define(`ms_alt_lang_list',`syscmd(./bin/alt_lang_list ''$1'` ''$2'` 'ms_lang` ''ms_langs'` ''$3'`)')dnl

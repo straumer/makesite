@@ -1,0 +1,21 @@
+#!/bin/sh
+
+main_lang=$1
+src_to_dst=$(dirname $0)/src_to_dst
+OUT=
+MAKEVARS=
+[ $# -ge 1 ] && shift
+if [ -d src ]; then
+    for src in $(find src -type f -name "*.html"); do
+        for lang; do
+            dst=$($src_to_dst $src $main_lang $lang)
+            OUT="$OUT$dst"$'\n'
+            MAKEVARS="${MAKEVARS}MAP_$dst := $src"$'\n'"L_$dst := $lang"$'\n'
+        done
+    done
+fi
+if [ -n "$MAKEVARS" ]; then
+    [ ! -d gen ] && mkdir gen
+    echo -n "$MAKEVARS" > gen/extra.mk
+fi
+echo -n "$OUT"

@@ -1,0 +1,11 @@
+#!/bin/sh
+
+sep=$2$'\n'$1
+lang=${3:-en}
+langs=$4
+fmt=$5
+for L in $(echo "$langs" | tr ' ' '\n' | grep -v "^$lang\$"); do
+    title=$(sed -n "/i18n_lang/{s/^.*,\`//;s/'.*$//p;q}" conf/i18n/$L)
+    printf "${first:+$sep}$fmt" "ms_href(${L})" "$title"
+    first="y"
+done

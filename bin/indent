@@ -1,0 +1,14 @@
+#!/bin/awk -f
+#
+# For the contents of a file indented with whitespace i (except line 1):
+#
+# Replace ms_l2_indent with ms_indent.
+# Replace ms_indent with characters preceding the first ms_ on the line.
+
+FNR == 1 { l = $0 }
+FNR > 1 { l = i$0 }
+{ 
+    gsub("ms_indent","%{"substr(l, 1, index(l, "ms_")-1)"}", l)
+    gsub("ms_l2_indent","ms_indent", l)
+    print l
+}

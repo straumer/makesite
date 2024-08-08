@@ -1,0 +1,5 @@
+#!/bin/sh
+
+for l; do
+    echo "gen/$l.macros"
+done

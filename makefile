@@ -1,41 +1,35 @@
-# Note, GNU specific % used and envsubst
+MAIN_LANG := $(shell ./bin/main_lang)
+LANGS := $(shell ./bin/langs)
+MACROS := $(shell ./bin/macro_paths $(LANGS))
+SITE_TEMPLATES := $(shell [ -f templates/site.html ] && ./bin/site_template_paths $(LANGS))
+HTML := $(shell ./bin/html_paths $(MAIN_LANG) $(LANGS))
+STATIC_FILES := $(shell [ -d src ] && find src -type f | sed '/\(\.html\)$$/d; s/^src/dst/')
+CONF := $(shell [ -f conf/general ] && echo conf/general)
 
-BASE_PAGES != [ -d src ] && find src -type f -name "*.html" | sed '/index\.html$$/d; s/\.html$$//g; s/^src/dst/g; s/.*/&\/index.html/g'
-BASE_INDEX != [ -d src ] && find src -type f -name "index.html" | sed 's/^src/dst/g'
-STATIC_FILES != [ -d src ] && find src -type f | sed '/\(\.html\)$$/d; s/^src/dst/'
-LANGS != [ -d conf/i18n ] && ls conf/i18n
-EXPLICIT_DEFAULT_LANG !=  printf '$(LANGS)' | sed -n '/_def$$/{p;q}'
-DEFAULT_LANG != printf '$(LANGS)' | wc -w | sed 's/0/en/;s/1/$(LANGS)/;/^[^01]$$/s/.*/$(or $(EXPLICIT_DEFAULT_LANG),en)/'
-
-PAGES = $(BASE_PAGES) $(call addlangprefixes,$(BASE_PAGES))
-INDEX = $(BASE_INDEX) $(call addlangprefixes,$(BASE_INDEX))
-CONFIGS != [ -d conf ] && find conf
-TEMPLATES != [ -d templates ] && find templates
-
-addlangprefixes = $(foreach lang,$(subst $(DEFAULT_LANG),,$(LANGS)),$(subst dst/,dst/$(lang)/,$(1)))
-langprefix = $(findstring $(firstword $(strip $(subst /, ,$(1)))),$(LANGS))
-rmlangprefix = $(subst /$(call langprefix,$(1))/,/,$(1))
-
-all: $(PAGES) $(INDEX) $(STATIC_FILES)
+all: $(MACROS) $(SITE_TEMPLATES) $(HTML) $(STATIC_FILES)
 
 .SECONDEXPANSION:
 
--include conf.mk
+-include gen/extra.mk
 
-$(PAGES): dst%/index.html: src$$(call rmlangprefix,%).html $(CONFIGS) $(TEMPLATES)
+# Per language preprocessing
 
-$(INDEX): dst%index.html: src$$(call rmlangprefix,%)index.html $(CONFIGS) $(TEMPLATES)
+$(MACROS): gen/%.macros: conf/i18n/% macros/general $(CONF)
+	cat macros/general $(CONF) $< > $@
 
-%/index.html:
-	./bin/html $< $@ '$(LANGS)' '$(DEFAULT_LANG)'
+$(SITE_TEMPLATES): gen/%.site.html: gen/%.macros templates/site.html macros/end
+	./bin/indent templates/site.html | m4 -D ms_lang=$* -D ms_langs="$(LANGS)" $< macros/template macros/end - > $@
+
+
+# Per target processing
+
+$(HTML): %: $$(MAP_%) $$(if $(SITE_TEMPLATES),gen/$$(L_%).site.html) gen/$$(L_%).macros macros/content
+	@mkdir -p $$(dirname $@)
+	./bin/html $< $(L_$*) > $@
 
 dst/%: src/%
 	@mkdir -p $$(dirname $@)
 	cp $< $@
 
-deploy: all
-	@. ./conf/general
-	rsync --ignore-existing --delete-excluded -rvz $${rsync_from}/* $${rsync_to}
-
 clean:
-	@rm -r dst/*
+	@rm -rf dst/* gen

@@ -1,0 +1,4 @@
+define(`ms_tmpfile',`/tmp/ms_partial')dnl
+define(`ms_content',`syscmd(./bin/content ms_src_path ms_lang ''$1' ms_tmpfile`)include(ms_tmpfile)dnl')dnl
+define(`ms_index',`syscmd(./bin/index ms_src_path ms_main_lang ms_lang ''$1'` ''$2'`)')dnl
+define(`ms_href', `syscmd(./bin/src_to_dst -u ms_src_path ms_main_lang ''$1'`)')dnl

@@ -1,81 +1,11 @@
 #!/bin/sh
-#
-# Prerequisites:
-# - OUT has prefix dst/
-# - IN has prefix src/ and src/ exists
 
-IN=$1
-OUT=$2
-LANGS=$3
-DEFAULT_LANG=$4
+src_path=$1
+lang=${2:-en}
+m4_cmd="m4 -D ms_src_path=$src_path -D ms_lang=$lang gen/$lang.macros macros/content macros/end -"
 
-set -o allexport
-
-MACROS=""
-mkdir -p $(dirname $OUT) tmp
-TARGET_LANG=$(printf "$OUT" | cut -d '/' -f 2 -)
-[ -f conf/general ] && MACROS="$(cat conf/general)"$'\n'
-
-if echo "${LANGS}" | grep -q "${TARGET_LANG}"; then
-    [ -f conf/i18n/${TARGET_LANG} ] && MACROS="${MACROS}$(cat conf/i18n/${TARGET_LANG})"$'\n'
+if [ -f gen/$lang.site.html ]; then
+    ./bin/indent gen/$lang.site.html | $m4_cmd
 else
-    [ -f conf/i18n/${DEFAULT_LANG} ] && MACROS="${MACROS}$(cat conf/i18n/${DEFAULT_LANG})"$'\n'
-	TARGET_LANG=${DEFAULT_LANG}
+    sed -n "/^[^=]/G;/\n=\($lang\|\)$/P;/^=/h" $src_path | ./bin/indent | $m4_cmd
 fi
-
-LANG_PREFIX=$(printf $TARGET_LANG | grep -v ${DEFAULT_LANG} | sed 's/.*/\/&/g')
-MACROS="${MACROS}define(\`MS_LANG_PREFIX',\`${LANG_PREFIX}')dnl"$'\n'
-if [ -f templates/alt_lang_item.html ]; then
-    PREFIX="dst$(printf "\\/${TARGET_LANG}" | sed "/\/${DEFAULT_LANG}/d")"
-    for L in $(echo "$LANGS" | sed "s/${TARGET_LANG}//"); do
-        NEW_PREFIX=$(printf "\\/$L" | sed "/\/${DEFAULT_LANG}/d")
-        MACROS="${MACROS}define(\`MS_ALT_LANG',\`$(sed -n "/i18n_lang/{s/^.*,\`//;s/'.*$//p}" conf/i18n/$L)')dnl"$'\n'
-        MACROS="${MACROS}define(\`MS_ALT_LANG_HREF',\`$(printf $OUT | sed "s/${PREFIX}/${NEW_PREFIX}/; s/index\.html$//")')dnl"$'\n'
-    	printf "$MACROS" | m4 - templates/alt_lang_item.html >> tmp/alt_lang_index
-    done
-    
-    if [ -f tmp/alt_lang_index ]; then
-        ali_indentation=$(sed -n '/^\s*MS_ALT_LANG_ITEMS/s/MS_ALT_LANG_ITEMS.*//p' templates/site.html)
-        ALT_LANG_ITEMS=$(cat tmp/alt_lang_index | sed "2,\$s/^/${ali_indentation}/")
-        MACROS="${MACROS}define(\`MS_ALT_LANG_ITEMS',\`${ALT_LANG_ITEMS}')dnl"$'\n'
-        rm tmp/alt_lang_index
-    fi
-fi
-
-heading=$(sed -n "/^[^=]/G;/\n=\(${TARGET_LANG%_def}\|\)$/{s/<\(\/\|\)h1>//g;P;q};/^=/h" $IN)
-if [ -z "${heading}" ]; then
-    subtitle=""
-else
-    subtitle="- ${heading}"
-fi
-MACROS="${MACROS}define(\`MS_SUBTITLE',\`${subtitle}')dnl"$'\n'
-
-if echo $IN | grep -q "/index\.html$" && head -n 1 $IN | grep -v -q "^=page$" && [ -f templates/index_item.html ] && [ -f templates/index.html ]; then
-    ENTRY_DIR=$(dirname $IN)
-    ENTRIES=$(find $ENTRY_DIR -type f | grep "^${ENTRY_DIR}/[^/]*\\.html\$" | sed "/index\\.html$/d")
-    ITEMS=""
-	for ENTRY in ${ENTRIES}; do
-		PREHREF="${LANG_PREFIX}${ENTRY#src}"
-        TITLE=$(sed -n "/^[^=]/G;/\n=\(${TARGET_LANG%_def}\|\)$/{s/<\(\/\|\)h1>//g;P;q};/^=/h" ${ENTRY})
-        MACROS="${MACROS}define(\`MS_INDEX_HREF',\`${PREHREF%.html}/')dnl"$'\n'
-        MACROS="${MACROS}define(\`MS_INDEX_TITLE',\`${TITLE}')dnl"$'\n'
-        NEW_ITEM="$(printf "$MACROS" | m4 - templates/index_item.html)"
-        ITEMS="${ITEMS}${NEW_ITEM}\n"
-	done
-    MACROS="${MACROS}define(\`MS_ITEMS',\`${ITEMS%\n}')dnl"$'\n'
-    MACROS="${MACROS}define(\`MS_HEADING',\`${heading}')dnl"$'\n'
-	CONTENT=$(printf "$MACROS" | m4 - templates/index.html)
-else
-	CONTENT=$(sed -n "/^[^=]/G;/\n=\(${TARGET_LANG%_def}\|\)$/P;/^=/h" $IN | m4)
-fi
-
-if [ -f templates/site.html ]; then
-    content_indentation=$(sed -n '/^.*MS_CONTENT/s/MS_CONTENT.*//p' templates/site.html)
-    CONTENT=$(echo "${CONTENT}" | sed "2,\$s/^/${content_indentation}/")
-    MACROS="${MACROS}changequote(\`[q[',\`]q]')dnl"$'\n'
-    MACROS="${MACROS}define([q[MS_CONTENT]q],[q[${CONTENT}]q])dnl"
-    echo "${MACROS}" | m4 - templates/site.html > $OUT
-else
-    echo "${CONTENT}" > $OUT
-fi
-rm -r tmp

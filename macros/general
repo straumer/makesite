@@ -1,0 +1,2 @@
+ifdef(`ms_main_lang',,`define(`ms_main_lang',`en')')dnl
+define(`ms_url',`syscmd(./bin/src_to_dst -u $1 ms_main_lang ms_lang)')dnl

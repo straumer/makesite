@@ -1,0 +1,7 @@
+#!/bin/sh
+
+if [ -f conf/general ]; then
+    echo 'ms_main_lang' | m4 conf/general macros/general -
+else
+    echo 'ms_main_lang' | m4 macros/general -
+fi

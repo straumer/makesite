@@ -1,0 +1,5 @@
+#!/bin/sh
+
+if [ -d conf/i18n ]; then
+    ls conf/i18n
+fi

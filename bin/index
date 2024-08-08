@@ -1,0 +1,17 @@
+#!/bin/sh
+
+src_path=$1
+def_lang=${2:-en}
+lang=${3:-en}
+sep=$'\n'$4
+fmt=$5
+dir=$(dirname $src_path)
+for f in $(ls $dir | grep -v "^index.html$"); do
+    f_path=$dir/$f
+    title=$(sed -n "/<h1>/{s/ *<\\(\\/\\|\\)h1> *//gp;q}" $f_path)
+    if [ -n "$title" ]; then
+        path=$(./bin/src_to_dst -u $f_path $def_lang $lang)
+        printf "${first:+$sep}$fmt" "$path" "$title"
+        first="y"
+    fi
+done

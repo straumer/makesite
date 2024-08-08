@@ -1,0 +1,76 @@
+#!/bin/sh
+# Usage:
+# src_to_dist [-u] [src]/some/path/to/file[.html|/index.html] [default lang] [lang]
+#
+# It tries to find a matching file under the src directory and outputs the corresponding
+# file under the dst directory. "default lang" and "lang" specify languages that are the
+# directory names under conf/i18n/*. If they are the same, path will be
+# "dst/some/path/to/file/index.html". If not, "file" is translated to the name
+# specified by the "=filename:<name>" directive of the found src file, and for each directory
+# that contains a ".<lang>" file in it (except "dst") is translated to its contents. The "-u"
+# flag formats the output as the URL path to be accessed in a browser, e.g.
+# "/some/path/to/file".
+
+if getopts u flag; then
+    shift 1
+fi
+
+src_path=$1
+main_lang=${2:-en}
+lang=${3:-en}
+
+# Expand input path to an actual file under src directory
+if [ "$src_path" = "${src_path#src/}" ]; then
+    src_path=src$src_path
+fi
+if [ ! -f $src_path ]; then
+    if [ -f "${src_path%/}.html" ]; then
+        src_path=${src_path%/}.html
+    elif [ -f "${src_path%/}/index.html" ]; then
+        src_path=${src_path%/}/index.html
+    else
+        echo "src path not found"
+        exit 1
+    fi
+fi
+
+# Apply u flag which should output path as seen on the website, otherwise
+# the path will be to the actual output file on the system.
+if [ "$flag" = "u" ]; then
+    dst_path=$(echo ${src_path#src} | sed 's/\(\/index\)\{0,1\}\.html$//;s/^$/\//')
+else
+    dst_path=$(echo dst${src_path#src} | sed '/\/index.html$/q;s/\.html$/\/index.html/')
+fi
+
+# If we are using the default lang, don't translate the path
+if [ "$main_lang" = "$lang" ]; then
+    printf "%s" $dst_path
+    exit 0
+fi
+
+# Translate filename if it exists
+if [ "$src_path" = "${src_path%/index.html}" ]; then
+    new_filename=$(grep "^=filename:$lang" $src_path | cut -d ' ' -f 2)
+    if [ "$new_filename" != "" ]; then
+        if [ "$flag" = "u" ]; then index=''; else index='\/index\.html'; fi
+        to_replace='\/'$(basename ${src_path%.html})$index'$'
+        replacement='\/'$new_filename$index
+        dst_path=$(echo $dst_path | sed "s/$to_replace/$replacement/")
+    fi
+fi
+
+# Translate directory names if translations exist
+current_dir=$(dirname $src_path)
+while [ $current_dir != 'src' ] && [ $current_dir != '.' ]; do
+    translated_dirname_path=$current_dir/.$lang
+    if [ -f $translated_dirname_path ]; then
+        translated_dirname=$(cat $translated_dirname_path)
+        dst_path=$(echo $dst_path | sed "s/$(basename $current_dir)/$translated_dirname/") # TODO Make sure right dir is changed
+    fi
+    current_dir=$(dirname $current_dir)
+done
+
+# Add language prefix
+dst_path=$(echo $dst_path | sed "s/\//\/$lang\//")
+
+printf "%s" $dst_path
