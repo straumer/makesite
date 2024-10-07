@@ -3,5 +3,4 @@
 src_path=$1
 lang=${2:-en}
 indent=$3
-
 sed -n "/^[^=]/G;/\n=\($lang\|\)$/P;/^=/h" $src_path | ./bin/indent -v i="$3" > $4

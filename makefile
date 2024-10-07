@@ -3,7 +3,7 @@ LANGS := $(shell ./bin/langs)
 MACROS := $(shell ./bin/macro_paths $(LANGS))
 SITE_TEMPLATES := $(shell [ -f templates/site.html ] && ./bin/site_template_paths $(LANGS))
 HTML := $(shell ./bin/html_paths $(MAIN_LANG) $(LANGS))
-STATIC_FILES := $(shell [ -d src ] && find src -type f | sed '/\(\.html\)$$/d; s/^src/dst/')
+STATIC_FILES := $(shell [ -d src ] && find src -type f | sed '/\(\.html$$\|\/\.\)/d; s/^src/dst/')
 CONF := $(shell [ -f conf/general ] && echo conf/general)
 
 all: $(MACROS) $(SITE_TEMPLATES) $(HTML) $(STATIC_FILES)

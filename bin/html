@@ -1,11 +1,26 @@
 #!/bin/sh
 
+no_site=$1
+if [ "$no_site" = "-n" ]; then
+    shift 1
+fi
+
 src_path=$1
 lang=${2:-en}
-m4_cmd="m4 -D ms_src_path=$src_path -D ms_lang=$lang gen/$lang.macros macros/content macros/end -"
 
-if [ -f gen/$lang.site.html ]; then
+if [ "$src_path" = "${src_path%/index.html}" ]; then
+    template_path=$(dirname $src_path)/.template
+    if [ -f "$template_path" ]; then
+        template=$(cat $template_path)
+    fi
+fi
+
+m4_cmd="m4 -D ms_src_path=$src_path -D ms_template_path=templates/$template.html -D ms_lang=$lang gen/$lang.macros macros/content macros/end -"
+
+if [ "$no_site" != "-n" ] && [ -f gen/$lang.site.html ]; then
     ./bin/indent gen/$lang.site.html | $m4_cmd
+elif [ -f "templates/$template.html" ]; then
+    ./bin/indent templates/$template.html | $m4_cmd
 else
     sed -n "/^[^=]/G;/\n=\($lang\|\)$/P;/^=/h" $src_path | ./bin/indent | $m4_cmd
 fi

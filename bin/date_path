@@ -1,0 +1,8 @@
+#!/bin/sh
+
+if [ "${1%/index.html}" = "$1" ]; then
+    fdate=$(sed -n '/^[^"]*<time[^>"]*timedate="[^>]*>/{p;q}' $1 | cut -d '"' -f 2)
+    if [ -n "$fdate" ]; then
+        echo "$fdate:$1"
+    fi
+fi

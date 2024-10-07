@@ -1,0 +1,8 @@
+#!/bin/sh
+
+src_path=$1
+lang=$2
+title=$(sed -n "/^[^=]/G;/<h1>.*\n=\($lang\|\)$/{s/ *<\\(\\/\\|\\)h1> *//g;P;q};/^=/h" $src_path)
+if [ -n "$title" ]; then
+    echo "- $title"
+fi

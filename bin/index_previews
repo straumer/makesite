@@ -1,0 +1,20 @@
+#!/bin/sh
+
+fdirs=$(echo "$1" | sed 's/\(^\|:\)/ src\//g')
+sep=$'\n'$2
+def_lang=${3:-en}
+lang=${4:-en}
+indent="$5"
+fmt=$6
+output_file=$7
+content_indent=$(echo "$fmt" | sed -n '/^[[:space:]]\{1,\}%s/s/%s.*$//p')
+file_list=$(find $fdirs -name '*.html' -exec ./bin/date_path '{}' ';' | sort -r)
+output=""
+for l in $file_list; do
+    f_path=$(echo "$l" | cut -d ':' -f 2)
+    url_path=$(./bin/src_to_dst -u $f_path $def_lang $lang | sed 's/\//\\&/g')
+    item="$(sed -n "/^[^=]/G;/\n=\($lang\|\)$/P;/^=/h" $f_path | sed -n "/^<h1/{s/h1>/&<a href=\"$url_path\">/;s/<\\/h1/<\\/a>&/};/^<p>/{s/<\\/p>/..&/;p;q};p" | ./bin/indent -v i="$content_indent")"
+    output="${output}${first:+$sep}$(printf "${first:+$indent}$fmt" "$item")"
+    first="y"
+done
+echo "$output" > $output_file
