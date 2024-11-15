@@ -1,11 +1,20 @@
 #!/bin/sh
 
-maintitle=$1
-src_path=$2
-lang=$3
+main_title=$1
+default_title=$2
+src_path=$3
+lang=$4
 subtitle=$(sed -n "/^[^=]/G;/<h1>.*\n=\($lang\|\)$/{s/ *<\\(\\/\\|\\)h1> *//g;P;q};/^=/h" $src_path)
-if [ -n "$subtitle" ]; then
-    echo -n "$maintitle - $subtitle"
+if [ -z "$main_title" ]; then
+    if [ -n "$subtitle" ]; then
+        echo -n "$subtitle"
+    else
+        echo -n "$default_title"
+    fi
 else
-    echo -n "$maintitle"
+    if [ -n "$subtitle" ]; then
+        echo -n "$main_title - $subtitle"
+    else
+        echo -n "$main_title"
+    fi
 fi

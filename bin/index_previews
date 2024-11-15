@@ -8,7 +8,7 @@ indent="$5"
 fmt=$6
 output_file=$7
 content_indent=$(echo "$fmt" | sed -n '/^[[:space:]]\{1,\}%s/s/%s.*$//p')
-file_list=$(find $fdirs -name '*.html' -exec ./bin/date_path '{}' ';' | sort -r)
+file_list=$(find $fdirs -name '*.html' -exec ./bin/date_path '{}' ';' | sort -r | head -n 10)
 output=""
 for l in $file_list; do
     f_path=$(echo "$l" | cut -d ':' -f 2)

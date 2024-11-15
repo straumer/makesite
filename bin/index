@@ -7,17 +7,19 @@ sep=$'\n'$4
 fmt=$5
 pubdate_fmt=$(echo "$fmt" | grep -q '%s.*%s.*%s' && echo y)
 dir=$(dirname $src_path)
-for f in $(ls $dir | grep -v "^index.html$"); do
+output=""
+for f in $(ls $dir | grep -v "^index.html$" | sort -r); do
     f_path=$dir/$f
     title=$(sed -n "/^[^=]/G;/<h1>.*\n=\($lang\|\)$/{s/ *<\\(\\/\\|\\)h1> *//g;P;q};/^=/h" $f_path)
     if [ -n "$title" ]; then
         path=$(./bin/src_to_dst -u $f_path $def_lang $lang)
         if [ "$pubdate_fmt" = "y" ]; then
             pubdate=$(sed -n "/<time[^>]*pubdate/{s/.*timedate=\"//;s/\"[^>]*>.*<\/time.*//p;q}" $f_path)
-            printf "${first:+$sep}$fmt" "$pubdate" "$path" "$title"
+            output="$output$(printf "${first:+$sep}$fmt" "$pubdate" "$path" "$title")"
         else
-            printf "${first:+$sep}$fmt" "$path" "$title"
+            output="$output$(printf "${first:+$sep}$fmt" "$path" "$title")"
         fi
         first="y"
     fi
 done
+echo -n "$(echo "$output" | sort -r)"

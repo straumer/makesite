@@ -1,0 +1,8 @@
+#!/bin/sh
+
+src_path=$1
+lang=${2:-en}
+
+m4_cmd="m4 -D ms_src_path=$src_path -D ms_lang=$lang gen/$lang.macros macros/content macros/end -"
+
+cat $src_path | ./bin/indent | $m4_cmd

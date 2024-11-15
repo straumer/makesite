@@ -2,15 +2,17 @@ MAIN_LANG := $(shell ./bin/main_lang)
 LANGS := $(shell ./bin/langs)
 MACROS := $(shell ./bin/macro_paths $(LANGS))
 SITE_TEMPLATES := $(shell [ -f templates/site.html ] && ./bin/site_template_paths $(LANGS))
-HTML := $(shell ./bin/html_paths $(MAIN_LANG) $(LANGS))
+HTML := $(shell ./bin/paths html $(MAIN_LANG) $(LANGS))
+ATOM := $(shell ./bin/paths atom $(MAIN_LANG) $(LANGS))
 STATIC_FILES := $(shell [ -d src ] && find src -type f | sed '/\(\.html$$\|\/\.\)/d; s/^src/dst/')
 CONF := $(shell [ -f conf/general ] && echo conf/general)
 
-all: $(MACROS) $(SITE_TEMPLATES) $(HTML) $(STATIC_FILES)
+all: $(MACROS) $(SITE_TEMPLATES) $(HTML) $(ATOM) $(STATIC_FILES)
 
 .SECONDEXPANSION:
 
--include gen/extra.mk
+-include gen/extra_html.mk
+-include gen/extra_atom.mk
 
 # Per language preprocessing
 
@@ -26,6 +28,10 @@ $(SITE_TEMPLATES): gen/%.site.html: gen/%.macros templates/site.html macros/end
 $(HTML): %: $$(MAP_%) $$(if $(SITE_TEMPLATES),gen/$$(L_%).site.html) gen/$$(L_%).macros macros/content
 	@mkdir -p $$(dirname $@)
 	./bin/html $< $(L_$*) > $@
+
+$(ATOM): %: $$(MAP_%) gen/$$(L_%).macros macros/content
+	@mkdir -p $$(dirname $@)
+	./bin/atom $< $(L_$*) > $@
 
 dst/%: src/%
 	@mkdir -p $$(dirname $@)

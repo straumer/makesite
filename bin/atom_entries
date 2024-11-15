@@ -1,0 +1,24 @@
+#!/bin/sh
+
+fdirs=$(echo "$1" | sed 's/\(^\|:\)/ src\//g')
+sep=$'\n'$2
+def_lang=${3:-en}
+lang=${4:-en}
+indent="$5"
+fmt=$6
+output_file=$7
+content_indent=$(echo "$fmt" | sed -n "/%s/G;/\n.*<content/{s/%s.*$//;P;q};/<content/h")
+file_list=$(find $fdirs -name '*.html' -exec ./bin/date_path '{}' ';' | sort -r | head -n 10)
+output=""
+for l in $file_list; do
+    f_path=$(echo "$l" | cut -d ':' -f 2)
+    url_path=$(./bin/src_to_dst -u $f_path $def_lang $lang)
+    title="$(sed -n "/^[^=]/G;/\n=\($lang\|\)$/{/^<h1/{s/^<h1[^>]*>//;s/<\\/h1>.*$//;P;q}};/^=/h" $f_path)"
+    pubdate="$(sed -n "/^[^=]/G;/\n=\($lang\|\)$/{/created.*<time/{s/^.*timedate=\"//;s/\">.*$//;P;q}};/^=/h" $f_path)"
+    moddate="$(sed -n "/^[^=]/G;/\n=\($lang\|\)$/{/modified.*<time/{s/^.*timedate=\"//;s/\">.*$//;P;q}};/^=/h" $f_path)"
+    summary="$(sed -n "/^[^=]/G;/\n=\($lang\|\)$/{/<p>/{P;q}};/^=/h" $f_path)"
+    text="$(sed -n "/^[^=]/G;/\n=\($lang\|\)$/{/^<h1\\|<time/d;P};/^=/h" $f_path | ./bin/indent -v i="$content_indent")"
+    output="${output}${first:+$sep}$(printf "${first:+$indent}$fmt" "$title" "$url_path" "$url_path" "$pubdate" "${moddate:-$pubdate}" "${summary:-$text}" "$text")"
+    first="y"
+done
+echo "$output" > $output_file
